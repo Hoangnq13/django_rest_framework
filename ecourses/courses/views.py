@@ -8,10 +8,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework import status
+from django.db.models import Q
 # Create your views here.
 
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView, generics.RetrieveAPIView):
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView,generics.ListAPIView, generics.RetrieveAPIView):
     queryset = User.objects.filter(is_active = True)
     serializer_class = UserSerializer
     parser_classes = [MultiPartParser, ]
@@ -30,6 +31,18 @@ class CourseViewSet(viewsets.ModelViewSet):
     # swagger_schema = None
     
     # permission_classes = [permissions.IsAuthenticated]  # xac thuc dang nhap
+    
+    @action(methods=['GET'], detail=False)
+    def search(self, request):
+        search_query = request.query_params.get('query', '')
+
+        courses = self.filter_queryset(self.get_queryset().filter(
+            Q(subject__icontains=search_query) |
+            Q(description__icontains=search_query)
+        ))
+
+        serializer = self.get_serializer(courses, many=True)
+        return Response(serializer.data)
     
     def get_permissions(self):
         if self.action == 'list':
@@ -54,7 +67,18 @@ class LessonViewSet(viewsets.ModelViewSet):
         
         return Response(data= LessonSerializer(l, context = {'request': request}).data, status= status.HTTP_200_OK)
             
-        
+    
+    @action(methods=['GET'], detail = False)
+    def search(self, request):
+        search_query = request.query_params.get('query', '')
+
+        lesson = self.filter_queryset(self.get_queryset().filter(
+            Q(subject__icontains=search_query)
+
+        ))
+
+        serializer = self.get_serializer(lesson, many=True)
+        return Response(serializer.data)
         
 
     
